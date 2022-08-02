@@ -51,7 +51,7 @@ dbList = []
 with open(databaseFile) as f:
   dbList = json.load(f)
 
-print('Loaded {} fingerprints from the database'.format(len(dbList)))
+print(f'Loaded {len(dbList)} fingerprints from the database')
 run_api(classifications)
 
 def makeOsGuess(fp, n=3):
@@ -109,8 +109,8 @@ def makeOsGuess(fp, n=3):
     if guess['score'] != highest_score:
       break
     guesses.append({
-      'score': '{}/{}'.format(guess['score'], perfectScore),
-      'os': guess['os'],
+        'score': f"{guess['score']}/{perfectScore}",
+        'os': guess['os']
     })
 
   # get the os with the highest, normalized average score
@@ -127,7 +127,7 @@ def makeOsGuess(fp, n=3):
     # only consider OS classes with at least 8 elements
     if N >= 8:
       avg = sum(os_score[key]) / N
-      avg_os_score[key] = 'avg={}, N={}'.format(round(avg, 2), N)
+      avg_os_score[key] = f'avg={round(avg, 2)}, N={N}'
 
   return {
     'bestNGuesses': guesses[:n],
@@ -135,7 +135,7 @@ def makeOsGuess(fp, n=3):
   }
 
 def updateFile():
-  print('writing fingerprints.json with {} objects...'.format(len(fingerprints)))
+  print(f'writing fingerprints.json with {len(fingerprints)} objects...')
   with open('fingerprints.json', 'w') as fp:
     json.dump(fingerprints, fp, indent=2, sort_keys=False)
 
@@ -175,11 +175,7 @@ def tcpProcess(pkt, layer, ts):
   # based on this flag, and some are only valid when it is set, and others when it is clear.
   if tcp1.flags & tcp.TH_SYN:
     label = ''
-    if tcp1.flags & tcp.TH_SYN:
-      label = 'SYN'
-    if (tcp1.flags & tcp.TH_SYN) and (tcp1.flags & tcp.TH_ACK):
-      label = 'SYN+ACK'
-
+    label = 'SYN+ACK' if tcp1.flags & tcp.TH_ACK else 'SYN'
     print("%d: %s:%s -> %s:%s [%s]" % (ts, pkt[ip.IP].src_s, pkt[tcp.TCP].sport,
         pkt[ip.IP].dst_s, pkt[tcp.TCP].dport, label))
 
@@ -191,34 +187,34 @@ def tcpProcess(pkt, layer, ts):
     [tcpOpts, tcpTimeStamp, tcpTimeStampEchoReply, mss, windowScaling] = decodeTCPOptions(tcp1.opts)
 
     if verbose:
-      print('IP version={}, header length={}, TTL={}, df={}, mf={}, offset={}'.format(
-        ipVersion, ipHdrLen, ip4.ttl, df, mf, offset,
-      ))
-      print('TCP window size={}, flags={}, ack={}, header length={}, urp={}, options={}, time stamp={}, timestamp echo reply = {}, MSS={}'.format(
-        tcp1.win, tcp1.flags, tcp1.ack, tcp1.off_x2, tcp1.urp, tcpOpts, tcpTimeStamp, tcpTimeStampEchoReply, mss
-      ))
-      
+      print(
+          f'IP version={ipVersion}, header length={ipHdrLen}, TTL={ip4.ttl}, df={df}, mf={mf}, offset={offset}'
+      )
+      print(
+          f'TCP window size={tcp1.win}, flags={tcp1.flags}, ack={tcp1.ack}, header length={tcp1.off_x2}, urp={tcp1.urp}, options={tcpOpts}, time stamp={tcpTimeStamp}, timestamp echo reply = {tcpTimeStampEchoReply}, MSS={mss}'
+      )
+
     if label == 'SYN':
-      key = '{}:{}'.format(pkt[ip.IP].src_s, pkt[tcp.TCP].sport)
+      key = f'{pkt[ip.IP].src_s}:{pkt[tcp.TCP].sport}'
       fingerprints[key] = {
-        'ts': ts,
-        'src_ip': pkt[ip.IP].src_s,
-        'dst_ip': '{}'.format(pkt[ip.IP].dst_s),
-        'dst_port': '{}'.format(pkt[tcp.TCP].dport),
-        'ip_ttl': ip4.ttl,
-        'ip_df': df,
-        'ip_mf': mf,
-        'tcp_window_size': tcp1.win,
-        'tcp_flags': tcp1.flags,
-        'tcp_ack': tcp1.ack,
-        'tcp_seq': tcp1.seq,
-        'tcp_header_length': tcp1.off_x2, # tcp_data_offset
-        'tcp_urp': tcp1.urp,
-        'tcp_options': tcpOpts,
-        'tcp_window_scaling': windowScaling,
-        'tcp_timestamp': tcpTimeStamp,
-        'tcp_timestamp_echo_reply': tcpTimeStampEchoReply,
-        'tcp_mss': mss
+          'ts': ts,
+          'src_ip': pkt[ip.IP].src_s,
+          'dst_ip': f'{pkt[ip.IP].dst_s}',
+          'dst_port': f'{pkt[tcp.TCP].dport}',
+          'ip_ttl': ip4.ttl,
+          'ip_df': df,
+          'ip_mf': mf,
+          'tcp_window_size': tcp1.win,
+          'tcp_flags': tcp1.flags,
+          'tcp_ack': tcp1.ack,
+          'tcp_seq': tcp1.seq,
+          'tcp_header_length': tcp1.off_x2,
+          'tcp_urp': tcp1.urp,
+          'tcp_options': tcpOpts,
+          'tcp_window_scaling': windowScaling,
+          'tcp_timestamp': tcpTimeStamp,
+          'tcp_timestamp_echo_reply': tcpTimeStampEchoReply,
+          'tcp_mss': mss,
       }
 
       if classify:
@@ -229,7 +225,7 @@ def tcpProcess(pkt, layer, ts):
         if len(classifications) > purgeClassificationAfter:
           print('Purge classifications dict')
           classifications = {}
-        
+
       # update file once in a while
       if len(fingerprints) > 0 and len(fingerprints) % writeAfter == 0:
         updateFile()
@@ -238,8 +234,8 @@ def tcpProcess(pkt, layer, ts):
 
 
 def computeIP(info):
-  ipVersion = int('0x0' + hex(info)[2], 16)
-  ipHdrLen = int('0x0' + hex(info)[3], 16) * 4  
+  ipVersion = int(f'0x0{hex(info)[2]}', 16)
+  ipHdrLen = int(f'0x0{hex(info)[3]}', 16) * 4
   return [ipVersion, ipHdrLen]
 
 
@@ -275,20 +271,12 @@ def computeIPOffset(info):
   IP_DF = 0x2   # don't fragment
   IP_MF = 0x1   # more fragments (not last frag)
 
-  res = 0
-  df = 0
-  mf = 0
-
   flags = (info & 0xE000) >> 13
   offset = (info & ~0xE000)
 
-  if (flags & IP_RF) > 0:
-    res = 1
-  if (flags & IP_DF) > 0:
-    df = 1
-  if (flags & IP_MF) > 0:
-    mf = 1
-
+  res = 1 if (flags & IP_RF) > 0 else 0
+  df = 1 if (flags & IP_DF) > 0 else 0
+  mf = 1 if (flags & IP_MF) > 0 else 0
   return [df, mf, offset]
 
 
@@ -309,7 +297,7 @@ def main():
   counter = 0
   startTime = time.time()
 
-  print('listening on interface {}'.format(interface))
+  print(f'listening on interface {interface}')
 
   try:
     preader = pcapy.open_live(interface, 65536, False, 1)
@@ -335,7 +323,7 @@ def main():
         layer = 'eth'
         pkt = eth
 
-        if (eth[ethernet.Ethernet, ip.IP, tcp.TCP] is not None):
+        if pkt[ethernet.Ethernet, ip.IP, tcp.TCP] is not None:
           tcpPacket = True
 
       lcc = linuxcc.LinuxCC(buf)
@@ -353,13 +341,15 @@ def main():
       raise
     except Exception as e:
       error_string = traceback.format_exc()
-      print(str(error_string))
+      print(error_string)
 
   endTime = time.time()
   totalTime = endTime - startTime
 
   if verbose:
-    print ('Total Time: %s, Total Packets: %s, Packets/s: %s' % (totalTime, counter, counter / totalTime ))
+    print(
+        f'Total Time: {totalTime}, Total Packets: {counter}, Packets/s: {counter / totalTime}'
+    )
 
 try:
   opts, args = getopt.getopt(sys.argv[1:], "i:v:c:", ['interface=', 'verbose', 'classify'])

@@ -57,33 +57,33 @@ def decodeTCPOptions(opts):
 
   for i in opts:
     if i.type == TCP_OPT_EOL: # End of options list
-      res = res + 'E,'
+      res = f'{res}E,'
     elif i.type == TCP_OPT_NOP: # No operation
-      res = res + 'N,'
+      res = f'{res}N,'
     elif i.type == TCP_OPT_MSS: # Maximum segment size
       mss = struct.unpack('!h',i.body_bytes)[0]
-      res = res + 'M' + str(mss) + ','
+      res = f'{res}M{str(mss)},'
     elif i.type == TCP_OPT_WSCALE: # Window scaling
       windowScaling = struct.unpack('!b',i.body_bytes)[0]
-      res = res + 'W' + str(windowScaling) + ','
+      res = f'{res}W{str(windowScaling)},'
     elif i.type == TCP_OPT_SACKOK: # Selective Acknowledgement permitted
-      res = res + 'S,'
+      res = f'{res}S,'
     elif i.type == TCP_OPT_SACK: # Selective ACKnowledgement (SACK)
-      res = res + 'K,'
+      res = f'{res}K,'
     elif i.type == TCP_OPT_ECHO:
-      res = res + 'J,'
+      res = f'{res}J,'
     elif i.type == TCP_OPT_ECHOREPLY:
-      res = res + 'F,'  
-      #print("Options Echo (need to compute?):  %s" % (i.body_bytes))
+      res = f'{res}F,'  
+          #print("Options Echo (need to compute?):  %s" % (i.body_bytes))
     elif i.type == TCP_OPT_TIMESTAMP:
-      res = res + 'T,'
-      tcpTimeStamp = struct.unpack('!I',i.body_bytes[0:4])[0]
-      tcpTimeStampEchoReply = struct.unpack('!I',i.body_bytes[4:8])[0] 
+      res = f'{res}T,'
+      tcpTimeStamp = struct.unpack('!I', i.body_bytes[:4])[0]
+      tcpTimeStampEchoReply = struct.unpack('!I',i.body_bytes[4:8])[0]
     elif i.type == TCP_OPT_POCONN:
-      res = res + 'P,'
+      res = f'{res}P,'
     elif i.type == TCP_OPT_POSVC:
-      res = res + 'R,'
+      res = f'{res}R,'
     else: # unknown TCP option. Just store the opt_type
-      res = res + 'U' + str(i.type) + ','
+      res = f'{res}U{str(i.type)},'
 
   return(res, tcpTimeStamp, tcpTimeStampEchoReply, mss, windowScaling)
